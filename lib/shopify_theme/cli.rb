@@ -123,8 +123,14 @@ module ShopifyTheme
     method_option :quiet, :type => :boolean, :default => false
     def upload(*keys)
       check(true)
-      assets = assets_for(keys, local_assets_list)
-      assets = keys.empty? ? local_assets_list : keys
+      
+      assets = []
+      if keys.empty?
+        assets = local_assets_list
+      else
+        assets = assets_for(keys, local_assets_list)
+      end
+
       assets.each do |asset|
         send_asset(asset, options['quiet'])
       end
