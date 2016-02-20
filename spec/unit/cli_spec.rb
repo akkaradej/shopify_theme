@@ -6,7 +6,17 @@ module ShopifyTheme
   describe "Cli" do
 
     class CliDouble < Cli
-      attr_writer :local_files, :mock_config
+      attr_writer :local_files, :mock_config, :sent_list
+      attr_reader :sent_list
+
+      def initialize
+        @sent_list = []
+        @options = {}
+      end
+
+      desc "", ""
+      def check(exit_on_failure=false)
+      end
 
       desc "",""
       def config
@@ -26,6 +36,11 @@ module ShopifyTheme
       desc "", ""
       def local_files
         @local_files
+      end
+
+      desc "", ""
+      def send_asset(asset, quiet=false)
+        @sent_list << asset
       end
     end
 
@@ -86,5 +101,46 @@ module ShopifyTheme
       refute @cli.binary_file?('settings_data.json'), 'JSON files are not binary'
       refute @cli.binary_file?('applicaton.js.map'), 'Javascript Map files are not binary'
     end
+
+    describe "theme upload [FILE]" do
+      before do
+        ShopifyTheme.config = {
+          whitelist_files: ['assets/', 'config/'],
+          ignore_files: ['assets/disallow.png']
+        }
+        @cli.local_files = [
+          'assets/allow1.png', 
+          'assets/allow2.png', 
+          'assets/disallow.png', 
+          'config/whitelist.json',
+          'layout/other.liquid'
+        ]
+      end
+
+      describe "when specific FILE" do
+        it 'should upload specifc files that are in the whitelist and not in the ignore list' do
+          @cli.upload('assets/*')
+          assert_equal 2, @cli.sent_list.length
+          assert_equal true, @cli.sent_list.include?('assets/allow1.png')
+          assert_equal true, @cli.sent_list.include?('assets/allow2.png')
+        end
+
+        it 'should not upload files that are not in the whitelist' do
+          @cli.upload('layout/*')
+          assert_equal 0, @cli.sent_list.length
+        end
+      end
+
+      describe "when not specific FILE" do
+        it 'should upload all files that are in the whitelist and not in the ignore list' do
+          @cli.upload()
+          assert_equal 3, @cli.sent_list.length
+          assert_equal true, @cli.sent_list.include?('assets/allow1.png')
+          assert_equal true, @cli.sent_list.include?('assets/allow2.png')
+          assert_equal true, @cli.sent_list.include?('config/whitelist.json')
+        end
+      end
+    end
+
   end
 end
